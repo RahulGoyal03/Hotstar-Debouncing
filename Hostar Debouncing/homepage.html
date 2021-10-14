@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Home Page</title>
+    <link rel="stylesheet" href="./CSS/CSS/style.css">
+    <style>
+        * {
+            margin: 0px;
+            padding: 0px;
+            box-sizing: border-box;
+        }
+        
+        nav {
+            width: 100%;
+            height: 70px;
+            border: 1px solid rgb(192, 191, 191);
+            /* box-shadow: 2px 2px 2px 2px rgb(211, 209, 209); */
+            display: flex;
+            position: fixed;
+            background-color: white;
+        }
+        
+        .logo {
+            width: 70%;
+            /* border: 1px solid black; */
+        }
+        
+        .logo img {
+            width: 16%;
+            margin-left: 5%;
+        }
+        
+        .search {
+            width: 69%;
+            /* border: 1px solid black; */
+        }
+        
+        .search input {
+            width: 400px;
+            height: 70%;
+            border: none;
+            border-bottom: 2px solid black;
+            font-size: 20px;
+        }
+        
+        .search input:focus {
+            outline: none;
+            border-bottom: 2px solid black;
+        }
+        
+        #result {
+            width: 400px;
+            height: 200px;
+            /* border: 1px solid red; */
+            position: absolute;
+            z-index: 100;
+            overflow: scroll;
+            /* box-shadow: 1px 1px 1px 1px rgb(241, 241, 241); */
+            display: none;
+            background-color: white;
+        }
+        
+        #result::-webkit-scrollbar {
+            display: none;
+        }
+        
+        .card {
+            width: 100%;
+            height: 60px;
+            /* border: 1px solid black; */
+            display: flex;
+            margin: 10px 0px;
+        }
+        
+        .card div {
+            height: 100%;
+            margin: 0px 20px;
+            width: 80px;
+        }
+        
+        .card:hover {
+            cursor: pointer;
+        }
+        
+        main {
+            width: 100%;
+            /* height: calc(100vh - 70px); */
+            padding: 5%;
+        }
+        
+        main>div {
+            width: 100%;
+            height: 250px;
+            display: grid;
+            grid-template-columns: 19% 19% 19% 19% 19%;
+            column-gap: 1%;
+            margin-bottom: 50px;
+        }
+        
+        main>div>div {
+            height: 100%;
+        }
+        
+        main>h2 {
+            margin-bottom: 10px;
+        }
+        
+        main>h2:nth-child(1) {
+            margin-top: 20px;
+        }
+        
+        main>div>div:hover {
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+
+<body>
+    <nav>
+        <div class="logo"><img src="hotstar.jpg" alt=""></div>
+        <div class="search">
+            <input placeholder="🔍 Search" id="input" type="text">
+            <div id="result"></div>
+        </div>
+    </nav>
+    <main>
+        <h2>Trending Movies</h2>
+        <div id="recent"></div>
+        <h2>Top New Released Movies</h2>
+        <div id="popular"></div>
+    </main>
+</body>
+<script>
+    let input = document.getElementById("input");
+    let result = document.getElementById("result");
+    let main = document.querySelector("main");
+    let popular = document.getElementById("popular");
+    let recent = document.getElementById("recent");
+    //All normal variables
+    let interval;
+    // Functions
+    function Fetch(name) {
+        if (name == "" || name == null) {
+            return false;
+        }
+        clearTimeout(interval);
+        interval = setTimeout(async function() {
+            try {
+                let res = await fetch(
+                    `http://www.omdbapi.com/?apikey=d26a1acc&s=${name}`
+                );
+                let data = await res.json();
+                searchResult(data.Search);
+            } catch (err) {
+                console.log(err);
+            }
+        }, 1000);
+    }
+
+    function searchResult(data) {
+        result.innerHTML = null;
+
+        if (data == undefined) {
+            result.innerText = "😞 Sorry No Result found";
+            return false;
+        }
+        console.log(data);
+        data.forEach((element) => {
+            let card = document.createElement("div");
+            card.setAttribute("class", "card");
+            let img = document.createElement("div");
+            img.style.background = `url(${element.Poster})`;
+            img.style.backgroundSize = "cover";
+            card.appendChild(img);
+            let p = document.createElement("p");
+            p.textContent = element.Title;
+            card.appendChild(p);
+            card.addEventListener("click", function() {
+                NewPage(element);
+            });
+            result.appendChild(card);
+        });
+    }
+
+    function NewPage(element) {
+        localStorage.setItem("movie-app-imdb-data", element.imdbID);
+        window.location.href = "./movie.html";
+    }
+    async function FetchTrending(url, popular, time) {
+        let res = await fetch(url);
+        let data = await res.json();
+        let count = 0;
+        popular.innerHTML = null;
+        for (let j = count; j < count + 5; j++) {
+            TrendingDOM(data.results[j], popular);
+        }
+        count++;
+        if (count == data.results.length - 5) {
+            count = 0;
+        }
+        let interval = setInterval(() => {
+            popular.innerHTML = null;
+            for (let j = count; j < count + 5; j++) {
+                TrendingDOM(data.results[j], popular);
+            }
+            count++;
+            if (count == data.results.length - 5) {
+                count = 0;
+            }
+        }, time);
+        console.log(data);
+    }
+
+    function TrendingDOM(data, parent) {
+        let img = document.createElement("div");
+        img.style.background = `url(https://image.tmdb.org/t/p/w500/${data.poster_path})`;
+        img.style.backgroundSize = "cover";
+        img.addEventListener("click", () => {
+            RecomendedClick(data.id);
+        });
+        parent.appendChild(img);
+    }
+
+    function RecomendedClick(id) {
+        window.localStorage.removeItem("movie-app-imdb-data");
+        localStorage.setItem("movie-app-tmdb-data", id);
+        window.location.href = "./movie.html";
+    }
+    //Acctual Code
+    input.addEventListener("input", function() {
+        result.style.display = "block";
+        Fetch(input.value);
+    });
+    main.addEventListener("click", function() {
+        result.style.display = "none";
+    });
+    FetchTrending(
+        `https://api.themoviedb.org/3/trending/movie/week?api_key=84bd2ca964c1790070846809a1b4300b`,
+        popular,
+        4000
+    );
+    FetchTrending(
+        `https://api.themoviedb.org/3/movie/now_playing?api_key=84bd2ca964c1790070846809a1b4300b&language=en-US&page=1`,
+        recent,
+        5000
+    );
+</script>
+
+</html>
